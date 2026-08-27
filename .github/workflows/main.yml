@@ -11,22 +11,14 @@ jobs:
     steps:
       - name: Configure Core RDP Settings
         run: |
-          # Enable Remote Desktop
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' `
                              -Name "fDenyTSConnections" -Value 0 -Force
-          
-          # ✅ NLA ENABLED (security fix - keeps your password safe)
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
                              -Name "UserAuthentication" -Value 1 -Force
-          
-          # ✅ Secure encryption (security fix)
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
                              -Name "SecurityLayer" -Value 1 -Force
 
-          # Remove any existing rule
           netsh advfirewall firewall delete rule name="RDP-Tailscale" 2>$null
-          
-          # ✅ Firewall: ALLOW ANY IP (like your original)
           netsh advfirewall firewall add rule name="RDP-Tailscale" `
             dir=in action=allow protocol=TCP localport=3389
 
@@ -34,8 +26,8 @@ jobs:
 
       - name: Create RDP User with Secure Password
         run: |
-          # ✅ Use your STRONG password from GitHub Secrets
-          $password = ${{ secrets.RDP_PASSWORD }}
+          # ✅ FIXED: Added quotes around the secret
+          $password = "${{ secrets.RDP_PASSWORD }}"
           
           if (-not $password) {
               Write-Error "❌ RDP_PASSWORD secret not set! Please add it to GitHub Secrets"
@@ -65,7 +57,7 @@ jobs:
 
       - name: Establish Tailscale Connection
         run: |
-          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=gh-runner-$env:GITHUB_RUN_ID
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey="${{ secrets.TAILSCALE_AUTH_KEY }}" --hostname=gh-runner-$env:GITHUB_RUN_ID
           
           $tsIP = $null
           $retries = 0
@@ -99,9 +91,9 @@ jobs:
           Write-Host "=========================================="
           Write-Host "Address: $env:TAILSCALE_IP"
           Write-Host "Username: RDP"
-          Write-Host "Password: [BalenQnXosh12]"
+          Write-Host "Password: [YOUR SECRET - NOT SHOWN]"
           Write-Host "=========================================="
-          Write-Host "⚠️  Firewall: Open to ALL IPs (like you wanted)"
+          Write-Host "⚠️  Firewall: Open to ALL IPs"
           Write-Host "⚠️  But NLA is ENABLED (password protected)"
           Write-Host "==========================================`n"
           
