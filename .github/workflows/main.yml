@@ -11,18 +11,31 @@ jobs:
     steps:
       - name: Configure Core RDP Settings
         run: |
+          # Enable Remote Desktop
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' `
                              -Name "fDenyTSConnections" -Value 0 -Force
+          
+          # ⚠️ DISABLE NLA for compatibility (temporarily)
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
-                             -Name "UserAuthentication" -Value 1 -Force
+                             -Name "UserAuthentication" -Value 0 -Force
+          
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
-                             -Name "SecurityLayer" -Value 1 -Force
+                             -Name "SecurityLayer" -Value 0 -Force
 
+          # Remove any existing rule
           netsh advfirewall firewall delete rule name="RDP-Tailscale" 2>$null
+          
+          # Allow any incoming connection on port 3389
           netsh advfirewall firewall add rule name="RDP-Tailscale" `
             dir=in action=allow protocol=TCP localport=3389
+          
+          # ⚠️ DISABLE Windows Firewall completely
+          netsh advfirewall set allprofiles state off
 
+          # Restart Remote Desktop services
           Restart-Service -Name TermService -Force
+          Stop-Service -Name UmRdpService -Force
+          Start-Service -Name UmRdpService -Force
 
       - name: Create RDP User with Secure Password
         run: |
@@ -92,11 +105,12 @@ jobs:
           Write-Host "Username: RDP"
           Write-Host "Password: [YOUR SECRET - NOT SHOWN]"
           Write-Host "=========================================="
-          Write-Host "⚠️  Firewall: Open to ALL IPs"
-          Write-Host "⚠️  But NLA is ENABLED (password protected)"
-          Write-Host "=========================================="
+          Write-Host "⚠️  Firewall: DISABLED (completely open)"
+          Write-Host "⚠️  NLA: DISABLED (for compatibility)"
+          Write-Host "⚠️  Use at your own risk!"
+          Write-Host "==========================================`n"
           
           while ($true) {
-              Write-Host "[$(Get-Date)] ✅ RDP Active"
+              Write-Host "[$(Get-Date)] ✅ RDP Active - Press Ctrl+C to stop"
               Start-Sleep -Seconds 300
           }
