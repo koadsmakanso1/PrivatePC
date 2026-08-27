@@ -25,10 +25,8 @@ jobs:
           Restart-Service -Name TermService -Force
 
       - name: Create RDP User with Secure Password
-        env:
-          RDP_PASS: ${{ secrets.RDP_PASSWORD }}
         run: |
-          $password = $env:RDP_PASS
+          $password = "${{ secrets.RDP_PASSWORD }}"
           
           if (-not $password) {
               Write-Error "❌ RDP_PASSWORD secret not set! Please add it to GitHub Secrets"
@@ -57,10 +55,8 @@ jobs:
           Remove-Item $installerPath -Force
 
       - name: Establish Tailscale Connection
-        env:
-          TS_AUTH: ${{ secrets.TAILSCALE_AUTH_KEY }}
         run: |
-          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=$env:TS_AUTH --hostname=gh-runner-$env:GITHUB_RUN_ID
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey="${{ secrets.TAILSCALE_AUTH_KEY }}" --hostname=gh-runner-$env:GITHUB_RUN_ID
           
           $tsIP = $null
           $retries = 0
@@ -98,7 +94,7 @@ jobs:
           Write-Host "=========================================="
           Write-Host "⚠️  Firewall: Open to ALL IPs"
           Write-Host "⚠️  But NLA is ENABLED (password protected)"
-          Write-Host "==========================================`n"
+          Write-Host "=========================================="
           
           while ($true) {
               Write-Host "[$(Get-Date)] ✅ RDP Active"
